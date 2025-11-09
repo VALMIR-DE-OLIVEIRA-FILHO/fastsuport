@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-
+import api from "../../services/api";
 import { Lightbulb } from "lucide-react";
 
 interface LoginProps {
@@ -14,26 +14,37 @@ export default function Login({ onLogin }: LoginProps) {
   const [name, setName] = useState("");
   const [isLogin, setIsLogin] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isLogin) {
-      // LOGIN
-      if (email === "admin@test.com" && password === "123456") {
-        toast.success("Login realizado com sucesso!");
-        onLogin();
-        
+    try {
+      if (isLogin) {
+        // === LOGIN ===
+        const response = await api.post("/auth/login", { email, password });
+
+        if (response.status === 200) {
+          toast.success("Login realizado com sucesso!");
+          onLogin();
+        }
       } else {
-        toast.error("Usuário ou senha inválidos!");
+        // === CADASTRO ===
+        if (!name || !email || password.length < 6) {
+          toast.error("Preencha todos os campos corretamente!");
+          return;
+        }
+
+        const response = await api.post("/register", { name, email, password });
+
+        if (response.status === 201) {
+          toast.success("Conta criada com sucesso!");
+          setIsLogin(true);
+        }
       }
-    } else {
-      // CADASTRO
-      if (name && email && password.length >= 6) {
-        alert("Conta criada com sucesso!");
-        setIsLogin(true);
-      } else {
-        alert("Preencha todos os campos corretamente!");
-      }
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Erro ao se comunicar com o servidor"
+      );
+      console.error(error);
     }
   };
 
